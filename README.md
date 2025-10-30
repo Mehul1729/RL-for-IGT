@@ -1,4 +1,6 @@
-# Policy Learning for Iowa Gambling Problem
+# PFC-Limbic Dual System Mimicking AI Agent for Iowa Gambling Task
+
+## Policy Learning for Iowa Gambling Problem
 
 **A simple Neural Network based Agent is trained to learn the best policy for a complex set of decks of the Iowa Gambling Task. Following are the related plots and results:**
 
@@ -19,7 +21,6 @@
 
 ---
 
-**Loss Function used --> Cross Entropy Style loss for Discounted Returns and learned log probabilities of action from each trial :**  
-
+**Loss Function used → Cross Entropy style loss for Discounted Returns and learned log probabilities of action from each trial:**  
 
 ![eqn](https://github.com/Mehul1729/RL-for-IWT/blob/4257898f7b82063d5727a644464e7ca844494aef/Policy_Learning/Plots/eqn%20of%20lss%20.png)
