@@ -1,0 +1,11 @@
+{"time":"2025-10-30T17:21:44.0424237+05:30","level":"INFO","msg":"stream: starting","core version":"0.21.2"}
+{"time":"2025-10-30T17:21:44.6480554+05:30","level":"INFO","msg":"stream: created new stream","id":"zpnup20y"}
+{"time":"2025-10-30T17:21:44.6480554+05:30","level":"INFO","msg":"stream: started","id":"zpnup20y"}
+{"time":"2025-10-30T17:21:44.6480554+05:30","level":"INFO","msg":"writer: started","stream_id":"zpnup20y"}
+{"time":"2025-10-30T17:21:44.6486509+05:30","level":"INFO","msg":"handler: started","stream_id":"zpnup20y"}
+{"time":"2025-10-30T17:21:44.6486509+05:30","level":"INFO","msg":"sender: started","stream_id":"zpnup20y"}
+{"time":"2025-10-30T17:31:30.4660515+05:30","level":"INFO","msg":"stream: closing","id":"zpnup20y"}
+{"time":"2025-10-30T17:31:32.6118073+05:30","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-10-30T17:31:33.011299+05:30","level":"INFO","msg":"handler: closed","stream_id":"zpnup20y"}
+{"time":"2025-10-30T17:31:33.0118235+05:30","level":"INFO","msg":"sender: closed","stream_id":"zpnup20y"}
+{"time":"2025-10-30T17:31:33.0124537+05:30","level":"INFO","msg":"stream: closed","id":"zpnup20y"}

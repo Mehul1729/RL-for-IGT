@@ -1,0 +1,24 @@
+--- Training Limbic Agent Alone (Gamma: 0.9) ---
+Episode 300/3000, Average Reward (last 100): 1960.35
+Episode 600/3000, Average Reward (last 100): 1986.45
+Episode 900/3000, Average Reward (last 100): 1770.95
+Episode 1200/3000, Average Reward (last 100): 1668.45
+Episode 1500/3000, Average Reward (last 100): 1551.90
+Episode 1800/3000, Average Reward (last 100): 1805.00
+Episode 2100/3000, Average Reward (last 100): 1995.45
+Episode 2400/3000, Average Reward (last 100): 1866.15
+Traceback (most recent call last):
+  File "C:\Users\mehul\OneDrive\Desktop\AI Project 2025\Complex IWT\gpu_limbic.py", line 276, in <module>
+    loss, mean_log_prob, avg_probs = limbic_agent.update(gm) # Capture logs
+                                     ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mehul\OneDrive\Desktop\AI Project 2025\Complex IWT\gpu_limbic.py", line 164, in update
+    loss.backward() # Gradients are computed on GPU
+    ^^^^^^^^^^^^^^^
+  File "C:\Users\mehul\anaconda3\envs\clean\Lib\site-packages\torch\_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "C:\Users\mehul\anaconda3\envs\clean\Lib\site-packages\torch\autograd\__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "C:\Users\mehul\anaconda3\envs\clean\Lib\site-packages\torch\autograd\graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

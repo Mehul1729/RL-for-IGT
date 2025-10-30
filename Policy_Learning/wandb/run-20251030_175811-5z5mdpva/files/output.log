@@ -1,0 +1,6 @@
+--- Training Limbic Agent Alone (Gamma: 0.3) ---
+Episode 300/3000, Average Reward (last 100): 2282.30
+Episode 600/3000, Average Reward (last 100): 1768.10
+Episode 900/3000, Average Reward (last 100): 1873.60
+Episode 1200/3000, Average Reward (last 100): 2212.45
+Episode 1500/3000, Average Reward (last 100): 1996.40
