@@ -11,6 +11,14 @@
 
 ---
 
+
+
+### Deck Preference Order 
+![Decks](https://github.com/Mehul1729/RL-for-IWT/blob/e73352a0ecc6d9c52e25e789969938e6c7e13854/Policy_Learning/Plots/deck%20orders%20.png)
+
+
+
+
 ### Agent becoming confident with its prediction as evidenced by an increasing log probabilities it assigns to each choice
 ![Agent Confidence](https://github.com/Mehul1729/RL-for-IWT/blob/807550f9f0f42e057a4edea20a388bb8de1b379c/Policy_Learning/Plots/model%20confidence%20building.png)
 
