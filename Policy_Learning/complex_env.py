@@ -14,6 +14,10 @@ class IowaEnv:
     - Deck F: Very low reward, net gain (Hidden Gem)
     - Deck G: Highest reward, net zero (The "Siren" Trap)
     - Deck H: Variable, net *slight* loss (The "Grin" Trap)
+    
+    
+    
+    So order of preference : C, D, F, G, E H, A, B
     """
     def __init__(self, episode_length: int = 100):
         """
@@ -65,10 +69,9 @@ class IowaEnv:
         self.action_space = list(self._deck_properties.keys()) # [0, 1, 2, 3, 4, 5, 6, 7]
         self.reset()
         
-    def _calculate_reward(self, action: int) -> int:
+    def _calculate_reward(self, action):
         """
-        Calculates the reward for a given action based on the deck's
-        stochastic properties.
+       Takes into input a certain action (deck index choice by model) and calculate the net reward: reward + penalty (if any).
         """
         deck = self._deck_properties[action]
         self._deck_pull_counts[action] += 1
@@ -83,14 +86,18 @@ class IowaEnv:
             
         return reward
     
+    
+    
+    
     def reset(self):
         """Resets the environment to its initial state for a new episode."""
         self._current_trial = 0
         self.cumulative_reward = 0
-        self._last_action = -1 
-        self._action_history = deque(maxlen=10)
-        self._deck_pull_counts = {i: 0 for i in self.action_space}
+        self._last_action = -1 # No action taken yet
+        self._action_history = deque(maxlen=10) # we dont store the last 10 actions from the prev ep, so re-initializing the deque 
+        self._deck_pull_counts = {i: 0 for i in self.action_space} # reset the deck pull counts 
         return self._get_state()
+
 
     def _get_state(self):
         """Constructs the state dictionary from the environment's current properties."""
@@ -106,23 +113,15 @@ class IowaEnv:
         if action not in self.action_space:
             raise ValueError(f"Invalid action {action}. Action must be in {self.action_space}.")
         
-        reward = self._calculate_reward(action)
+        reward = self._calculate_reward(action) # calclate the reward of the current action
         self.cumulative_reward += reward
         self._last_action = action
-        self._action_history.append(action)
+        self._action_history.append(action) 
         self._current_trial += 1
         
-        done = self._current_trial >= self.episode_length
+        done = self._current_trial >= self.episode_length # the episdoe is finisheed when all the trials complete 
         next_state = self._get_state()
         info = {'deck_pulls': self._deck_pull_counts.copy()}
         
         return next_state, reward, done, info
     
-    def render(self):
-        """Prints a summary of the current environment state."""
-        print(f"--- Trial: {self._current_trial}/{self.episode_length} ---")
-        print(f"Last Action: {'None' if self._last_action == -1 else f'Deck {chr(65 + self._last_action)}'}")
-        print(f"Cumulative Reward: {self.cumulative_reward}")
-        print(f"Deck Pulls: {self._deck_pulls}")
-        print("-" * 25)
-

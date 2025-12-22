@@ -10,13 +10,15 @@ import matplotlib.pyplot as plt
 import wandb # First set up and account and key at wandb.ai to analyse the performance of the Agent.
 import os 
 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+ 
 # --- Agent ---
 class LimbicAgent(nn.Module):
     """
     A Reinforcement Learning agent representing the limbic system.
-    This agent uses a Policy Gradient method (REINFORCE) to learn. Its decision-making
-    is driven by immediate rewards, making it prone to impulsive choices that seem
-    good in the short term but may be detrimental in the long run. This impulsive behavior is modelled by the magnitude of the discount factor gamma (gm).
+    This agent uses a Policy Gradient method (REINFORCE) to learn.
     
     Attributes:
         policy_net (nn.Sequential): The neural network that maps states to action logits.
@@ -25,11 +27,10 @@ class LimbicAgent(nn.Module):
         saved_log_probs (list): A buffer to store the log probability of actions taken.
     """
     
-    
-    
+
     # Initializing the Policy NN:
     
-    def __init__(self, gm, input_dims: int, n_actions: int, device, learning_rate: float = 0.005):
+    def __init__(self, gm, input_dim, n_actions, device, learning_rate = 0.005):
         """
         Initializes the LimbicAgent.
         Args:
@@ -57,35 +58,32 @@ class LimbicAgent(nn.Module):
 
 
 
-
-
 # this function creates the format of input state to the policy NN :
 
-    def _format_state(self, last_action: int, last_reward: float, n_actions: int):
+    def _format_state(self, last_action, last_reward, n_actions):
         """
         Formats the input for the policy network as specified:
         one-hot encoded last action + previous reward.
-        All tensors are created on self.device (GPU if available).
         """
         # For the first turn, there is no previous action or reward.
         if last_action == -1:
-            # Creating tensors directly on the correct device
+            # iitiaizlizing the action and reward tensors 
             action_one_hot = torch.zeros(n_actions, device=self.device)
             reward_tensor = torch.zeros(1, device=self.device)
             
         else:
-            # Creating tensors directly on the correct device
+            
             action_tensor = torch.tensor(last_action, device=self.device)
             action_one_hot = F.one_hot(action_tensor, num_classes=n_actions).float()
             reward_tensor = torch.tensor([last_reward], dtype=torch.float32, device=self.device)
         
         # Min-Max scaling of the rewards :
-        reward_tensor = 2 * ((reward_tensor - (-1250)) / (130 - (-1250))) - 1
+        reward_tensor = 2 * ((reward_tensor - (-1210)) / (130 - (-1210))) - 1 # for a -1 to 1 range
+        # reward_tensor =  ((reward_tensor - (-1210)) / (130 - (-1210))) 
+
         
         # Concatenating to create the final state vector:
         return torch.cat([action_one_hot, reward_tensor]).unsqueeze(0)
-
-
 
 
 # Action fucntion:
@@ -110,7 +108,6 @@ class LimbicAgent(nn.Module):
         self.episode_action_probs.append(action_distribution.probs) # Log probs for wandb
         
         return action.item()
-
 
 
 # for updating the weights of the policy net :
@@ -198,16 +195,16 @@ if __name__ == '__main__':
         print(f"\n--- Loading Extreme {n_actions}-Deck Environment ---")
     else:
         # Default to 4-deck:
-        env_name = "Classic-4-Deck"
-        try:
-            from classic_env import IowaEnv as GameEnv
-            n_actions = 4 
-            print("\n--- Loading Classic 4-Deck Environment ---")
-        except ImportError:
-            print("Could not find env.py. Defaulting to env_complex.py")
-            from complex_env import IowaEnv as GameEnv
-            n_actions = len(GameEnv().action_space)
-            print(f"\n--- Loading {n_actions}-Deck Environment from env_complex.py ---")
+        env_name = ""
+        # try:
+        #     from classic_env import IowaEnv as GameEnv
+        #     n_actions = 4 
+        #     print("\n--- Loading Classic 4-Deck Environment ---")
+        # except ImportError:
+        #     print("Could not find env.py. Defaulting to env_complex.py")
+        #     from complex_env import IowaEnv as GameEnv
+        #     n_actions = len(GameEnv().action_space)
+        #     print(f"\n--- Loading {n_actions}-Deck Environment from env_complex.py ---")
 
 
     # Hyperparameters
@@ -232,7 +229,7 @@ if __name__ == '__main__':
 
 
 
-        """
+    """
 
         Using Wandb to log training metrics and analyse how the agent is learning over time.
         
