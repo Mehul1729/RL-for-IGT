@@ -19,7 +19,7 @@ class IowaEnv:
     
     So order of preference : C, D, F, G, E H, A, B
     """
-    def __init__(self, episode_length: int = 100):
+    def __init__(self, episode_length: int = 1000):
         """
         Initializes the Extreme Complex Iowa Gambling Task environment.
             episode_length : The number of trials in one episode.
@@ -116,6 +116,7 @@ class IowaEnv:
         reward = self._calculate_reward(action) # calclate the reward of the current action
         self.cumulative_reward += reward
         self._last_action = action
+        print(f"last action for this trial : {self._last_action} ::: input to the NN ")
         self._action_history.append(action) 
         self._current_trial += 1
         

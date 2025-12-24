@@ -30,7 +30,7 @@ class LimbicAgent(nn.Module):
 
     # Initializing the Policy NN:
     
-    def __init__(self, gm, input_dim, n_actions, device, learning_rate = 0.005):
+    def __init__(self, gm, input_dim : int , n_actions, device, learning_rate = 0.005):
         """
         Initializes the LimbicAgent.
         Args:
@@ -60,7 +60,7 @@ class LimbicAgent(nn.Module):
 
 # this function creates the format of input state to the policy NN :
 
-    def _format_state(self, last_action, last_reward, n_actions):
+    def _format_state(self, last_action: int , last_reward: float , n_actions):
         """
         Formats the input for the policy network as specified:
         one-hot encoded last action + previous reward.
@@ -95,16 +95,19 @@ class LimbicAgent(nn.Module):
         # Formating the the state for the network
      
         state = self._format_state(last_action, last_reward, n_actions)
-        
+        print(f"inout state for this trial : {state}")
         # Forward pass to get action logits:
-        action_logits = self.policy_net(state)
-        
-        #  a probability distribution and sample an action:
+        action_logits = self.policy_net(state) # the model will assign some logit to each of the actions, signifying the likelhiood of taking that action.
+
+        print(action_logits)
+# sampling an action from the action_logit distrbution to account for exploration in RL training :        
         action_distribution = Categorical(logits=action_logits)
         action = action_distribution.sample()
+
+
         
         # Saving log_prob and action_probs for update/logging:
-        self.saved_log_probs.append(action_distribution.log_prob(action))
+        self.saved_log_probs.append(action_distribution.log_prob(action)) # saving log prob for this trial 
         self.episode_action_probs.append(action_distribution.probs) # Log probs for wandb
         
         return action.item()
@@ -122,18 +125,25 @@ class LimbicAgent(nn.Module):
             return 0.0, 0.0, torch.zeros(self.policy_net[-1].out_features) # No actions
 
         policy_loss = []
-        discounted_returns = deque()
+        discounted_returns = deque() # initialize a deque to store discounted returns
         R = 0 # total long term reward (discounted return)
 
         # for the given trial, we clauclate the discounted retrun:
         for r in reversed(self.rewards): # for all the rewrds in a given episode 
             R = r + gm * R # bellman equation trick 
-            discounted_returns.appendleft(R)
+            discounted_returns.appendleft(R) # saving the discounted return for each trial in a deque 
         
-        
-        returns = torch.tensor(list(discounted_returns), dtype=torch.float32, device=self.device)
-        
- 
+        # rewards = torch.tensor(self.rewards, dtype=torch.float32, device=self.device)
+        # T = rewards.size(0)
+
+        # gamma_powers = gm ** torch.arange(T, device=self.device, dtype=torch.float32)
+
+        # discounted = rewards * gamma_powers
+        # returns = torch.flip(torch.cumsum(torch.flip(discounted, [0]), dim=0), [0])
+        # returns = returns / gamma_powers + 1e-9
+
+
+ # normalizing the discounted returns for all he trials in the ep. 
         if len(returns) > 1:
             returns = (returns - returns.mean()) / (returns.std() + 1e-9)
         else:
@@ -142,25 +152,31 @@ class LimbicAgent(nn.Module):
             
         # Calculating the policy loss:
         for log_prob, R in zip(self.saved_log_probs, returns):
-            policy_loss.append(-log_prob * R) # collecting policy loss for each action taken
+            policy_loss.append(-log_prob * R) # collecting policy loss for each action taken (for each trial, total + ep_lenght)
             
+            
+        # replacement :
         # Data for Logging:
         # Stacking all log_probs and probs tensors
         log_probs_tensor = torch.stack(self.saved_log_probs)
         action_probs_tensor = torch.stack(self.episode_action_probs)
         
-        mean_log_prob = log_probs_tensor.mean().item()
-        avg_episode_probs = action_probs_tensor.mean(dim=0).squeeze().detach() # Avg across episode
-            
+        # policy_loss = -log_probs_tensor * returns             # [T]
+        # loss = policy_loss.sum()
+        
+        # saving the data for this episode
+        mean_log_prob = log_probs_tensor.mean().item() # to track teh growing confidence of the model in its predictions
+        avg_episode_probs = action_probs_tensor.mean(dim=0).squeeze().detach() # Avg across episodes for each of the choices 
+
         #  optimization step:
         self.optimizer.zero_grad()
-        loss = torch.cat(policy_loss).sum() 
-        loss.backward() 
+        # loss = torch.cat(policy_loss).sum() # net polixy loss for the episode
+        loss.backward()
         self.optimizer.step()
         
         # Clearing the episode's data
         self.rewards = []
-        self.saved_log_probs = [] 
+        self.saved_log_probs = []
         self.episode_action_probs = []
 
         return loss.item(), mean_log_prob, avg_episode_probs # Return logs
@@ -216,10 +232,10 @@ if __name__ == '__main__':
     input_dims = n_actions + 1
     
     # Initialization
-    env = GameEnv(episode_length=100) # 100 trials per episdoe 
+    env = GameEnv(episode_length=1000) # 100 trials per episdoe 
     
     limbic_agent = LimbicAgent(
-        input_dims=input_dims, 
+        input_dim=input_dims, 
         n_actions=n_actions, 
         gm=gm, 
         device=device,
@@ -280,8 +296,8 @@ if __name__ == '__main__':
         
         log_data = {
             "episode": i,
-            "policy_loss": loss,
-            "cumulative_reward": env.cumulative_reward,
+            "Expected Return ": -1* loss,
+            "cumulative_reward per episode": env.cumulative_reward,
             "mean_log_prob_episode": mean_log_prob
         }
         # Adding average action probabilities to the log
@@ -326,43 +342,26 @@ if __name__ == '__main__':
 
     print("\nGenerating training plots...")
 
-    def moving_average(data, window_size):
-        """Computes the moving average of a list."""
-        return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
-
-    # Calculate moving average for rewards
-    window_size = 50
-    # for Handling cases where n_episodes < window_size
-    if n_episodes > window_size:
-        avg_rewards = moving_average(episode_rewards, window_size)
-    else:
-        avg_rewards = episode_rewards # Not enough data to smooth
-        window_size = 1
-
-
-    # Create the plots
+    # Plot raw episode rewards and policy losses directly
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
-    
-    # Plot 1: Smoothed Cumulative Reward
-    if n_episodes > window_size:
-        ax1.plot(range(window_size - 1, n_episodes), avg_rewards)
-    else:
-        ax1.plot(avg_rewards)
-    ax1.set_title(f"Smoothed Cumulative Reward (Window={window_size}) - Gamma={gm}")
-    ax1.set_ylabel("Average Reward")
+
+    # Plot 1: Raw Cumulative Reward per Episode
+    ax1.plot(episode_rewards)
+    ax1.set_title(f"Cumulative Reward per Episode - Gamma={gm}")
+    ax1.set_ylabel("Cumulative Reward")
     ax1.grid(True)
 
-    # Plot 2: Raw Policy Loss
+    # Plot 2: Raw Policy Loss per Episode
     ax2.plot(policy_losses)
-    ax2.set_title("Raw Policy Loss per Episode (Normalized)")
+    ax2.set_title("Policy Loss per Episode")
     ax2.set_xlabel("Episode")
     ax2.set_ylabel("Loss Value")
     ax2.grid(True)
-    
+
     plt.tight_layout()
     plot_filename = f"training_plots_gamma_{gm}.png"
     plt.savefig(plot_filename)
     print(f"Saved training plots to {plot_filename}")
 
-    wandb.finish() 
+    wandb.finish()
 

@@ -1,0 +1,15 @@
+--- Training Limbic Agent Alone (Gamma: 0.3) ---
+Traceback (most recent call last):
+  File "C:\Users\mehul\RL-for-IGT\Policy_Learning\gpu_limbic.py", line 282, in <module>
+    action = limbic_agent.act(last_action, last_reward, n_actions)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mehul\RL-for-IGT\Policy_Learning\gpu_limbic.py", line 104, in act
+    action_distribution = Categorical(logits=action_logits)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mehul\anaconda3\envs\clean\Lib\site-packages\torch\distributions\categorical.py", line 72, in __init__
+    super().__init__(batch_shape, validate_args=validate_args)
+  File "C:\Users\mehul\anaconda3\envs\clean\Lib\site-packages\torch\distributions\distribution.py", line 71, in __init__
+    raise ValueError(
+ValueError: Expected parameter logits (Tensor of shape (1, 8)) of distribution Categorical(logits: torch.Size([1, 8])) to satisfy the constraint IndependentConstraint(Real(), 1), but found invalid values:
+tensor([[nan, nan, nan, nan, nan, nan, nan, nan]], device='cuda:0',
+       grad_fn=<SubBackward0>)
