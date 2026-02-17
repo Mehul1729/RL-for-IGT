@@ -1,4 +1,16 @@
-# PFC-Limbic Dual System Mimicking AI Agent for Iowa Gambling Task
+# PFC-Limbic Dual-System HUman Decision-Making Mimicking AI Agent for Iowa Gambling Task
+
+
+
+
+
+### In this work,
+
+### 1. A policy Gradient based RL agent tries to solve the Iowa Gambling Task : identifying the best long term benefitting deck in a complex environement.
+### 2. A model of Dual-System based Human brain, that tries to mimic the two aspects of human decision making: Analytical and Emotion/Intuition based.
+### 3. Actual clinical data of subjects in Iowa Gambling Task is then fitted to the model and paraneters were extracted for each of the subject.
+
+
 
 ## Policy Learning for Iowa Gambling Problem
 
