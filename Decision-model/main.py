@@ -1,6 +1,4 @@
-# =========================
-# file 3: main.py
-# =========================
+
 
 import numpy as np
 import pandas as pd
@@ -14,7 +12,6 @@ from likelihood import calculate_nll
 
 
 # --- Monte Carlo Optimizer---
-
 def monte_carlo_search(choices, rewards, n_iters=100):
     """
     Randomly samples parameters and returns the best set.
@@ -81,9 +78,8 @@ def process_group(filepath, group_name, n_iter):
         sub_data = df[df['subjID'] == sub]
         choices = sub_data['deck'].values
         rewards = sub_data['net_reward'].values
-        
-        # RUN MONTE CARLO (100 random guesses per subject)
-        # It's fast and cannot hang.
+
+
         params, nll = monte_carlo_search(choices, rewards, n_iters=n_iter)
         
         if params is not None:

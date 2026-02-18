@@ -69,7 +69,7 @@ def calculate_nll(params, choices, rewards, n_actions=4):
         # 3. Score
         prob_chosen = final_probs[action]
         if prob_chosen < 1e-9: prob_chosen = 1e-9
-        total_nll -= np.log(prob_chosen) # accumulating the  log likelihood 
+        total_nll -= np.log(prob_chosen) # accumulating the  log likelihood
         
         # 4. Learning
         next_counts = deck_counts.copy()

@@ -1,6 +1,4 @@
-# =========================
-# file 1: agents.py
-# =========================
+
 
 import numpy as np
 import pandas as pd

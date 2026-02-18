@@ -1,0 +1,491 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.distributions import Categorical
+from collections import deque
+import numpy as np
+import matplotlib.pyplot as plt
+import imageio.v2 as imageio
+from pathlib import Path
+
+import wandb # First set up and account and key at wandb.ai to analyse the performance of the Agent.
+import os 
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def plot_deck_prob_frame(prob_history, deck_idx, deck_name, gm, episode_idx, save_path):
+    """
+    prob_history: list of np arrays, each shape (n_actions,)
+    deck_idx: int, which deck to plot
+    save_path: where to save the frame PNG
+    """
+    y = [p[deck_idx] for p in prob_history]
+    x = list(range(len(y)))
+
+    plt.figure(figsize=(7, 4))
+    plt.plot(x, y)
+    plt.ylim(0.0, 1.0)
+    plt.xlabel("Episode")
+    plt.ylabel("Average action probability")
+    plt.title(f"avg_prob_deck_{deck_name} | gamma={gm} | episode={episode_idx}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=120)
+    plt.close()
+
+
+def make_gif_from_frames(frame_paths, out_gif_path, fps=12):
+    images = [imageio.imread(p) for p in frame_paths]
+    imageio.mimsave(out_gif_path, images, fps=fps)
+
+
+def plot_all_decks_grid_frame(prob_history, deck_names, gm, episode_idx, save_path):
+    """
+    Saves ONE frame containing a grid of all deck prob curves up to episode_idx.
+    """
+    n_actions = len(deck_names)
+    y_series = [[p[j] for p in prob_history] for j in range(n_actions)]
+    x = list(range(len(prob_history)))
+
+    # Grid shape: try 3 columns
+    cols = 3
+    rows = int(np.ceil(n_actions / cols))
+
+    fig, axes = plt.subplots(rows, cols, figsize=(12, 3.5 * rows), sharex=True, sharey=True)
+    axes = np.array(axes).reshape(-1)
+
+    for j in range(rows * cols):
+        ax = axes[j]
+        if j < n_actions:
+            ax.plot(x, y_series[j])
+            ax.set_title(f"avg_prob_deck_{deck_names[j]} | gamma={gm}")
+            ax.set_ylim(0.0, 1.0)
+            ax.grid(True)
+        else:
+            ax.axis("off")
+
+    fig.suptitle(f"Episode={episode_idx}", y=1.02, fontsize=14)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=120, bbox_inches="tight")
+    plt.close()
+
+# --- Agent ---
+class LimbicAgent(nn.Module):
+    """
+    A Reinforcement Learning agent representing the limbic system.
+    This agent uses a Policy Gradient method (REINFORCE) to learn.
+    
+    Attributes:
+        policy_net (nn.Sequential): The neural network that maps states to action logits.
+        optimizer (torch.optim.Adam): The optimizer for training the network.
+        rewards (list): A buffer to store rewards received during an episode.
+        saved_log_probs (list): A buffer to store the log probability of actions taken.
+    """
+    
+
+    # Initializing the Policy NN:
+    
+    def __init__(self, gm, input_dim, n_actions, device, learning_rate = 0.005):
+        """
+        Initializes the LimbicAgent.
+        Args:
+            input_dim (int): The dimensionality of the state representation.
+            n_actions (int): The number of possible actions (i.e., decks).
+            device (torch.device): The device (CPU or GPU) to run on.
+            learning_rate (float): The learning rate for the optimizer.
+        """
+        super(LimbicAgent, self).__init__()
+        self.gm = gm
+        self.device = device 
+        
+        # Defining the policy network :
+        self.policy_net = nn.Sequential(
+            nn.Linear(input_dim, 4),
+            nn.ReLU(),
+            nn.Linear(4, n_actions)
+        )
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        
+        # Buffers for the REINFORCE algorithm
+        self.rewards = [] # list of all the rewards in the episode 
+        self.saved_log_probs = [] # This will store tensors now on the device
+        self.episode_action_probs = [] # For wandb logging
+
+
+
+# this function creates the format of input state to the policy NN :
+
+    def _format_state(self, last_action, last_reward, n_actions):
+        """
+        Formats the input for the policy network as specified:
+        one-hot encoded last action + previous reward.
+        """
+        # For the first turn, there is no previous action or reward.
+        if last_action == -1:
+            # iitiaizlizing the action and reward tensors 
+            action_one_hot = torch.zeros(n_actions, device=self.device)
+            reward_tensor = torch.zeros(1, device=self.device)
+            
+        else:
+            
+            action_tensor = torch.tensor(last_action, device=self.device)
+            action_one_hot = F.one_hot(action_tensor, num_classes=n_actions).float()
+            reward_tensor = torch.tensor([last_reward], dtype=torch.float32, device=self.device)
+        
+        # Min-Max scaling of the rewards :
+        reward_tensor = 2 * ((reward_tensor - (-1210)) / (130 - (-1210))) - 1 # for a -1 to 1 range
+        # reward_tensor =  ((reward_tensor - (-1210)) / (130 - (-1210))) 
+
+        
+        # Concatenating to create the final state vector:
+        return torch.cat([action_one_hot, reward_tensor]).unsqueeze(0)
+
+
+# Action fucntion:
+
+    def act(self, last_action: int, last_reward: float, n_actions: int):
+        """
+        Selects an action based on the current policy.
+        """
+        # Formating the the state for the network
+     
+        state = self._format_state(last_action, last_reward, n_actions)
+        
+        # Forward pass to get action logits:
+        action_logits = self.policy_net(state)
+        
+        #  a probability distribution and sample an action:
+        action_distribution = Categorical(logits=action_logits)
+        action = action_distribution.sample()
+        
+        # Saving log_prob and action_probs for update/logging:
+        self.saved_log_probs.append(action_distribution.log_prob(action))
+        self.episode_action_probs.append(action_distribution.probs) # Log probs for wandb
+        
+        return action.item()
+
+
+# for updating the weights of the policy net :
+# this updation code will run for each episode:
+# LOSS FUNCTION CALCULATION:
+    def update(self, gm):
+        """
+        Updates the policy network using the REINFORCE algorithm.
+        Returns loss, mean log prob, and avg action probs for logging.
+        """
+        if not self.saved_log_probs:
+            return 0.0, 0.0, torch.zeros(self.policy_net[-1].out_features) # No actions
+
+        policy_loss = []
+        discounted_returns = deque()
+        R = 0 # total long term reward (discounted return)
+
+        # for the given trial, we clauclate the discounted retrun:
+        for r in reversed(self.rewards): # for all the rewrds in a given episode 
+            R = r + gm * R # bellman equation trick 
+            discounted_returns.appendleft(R)
+        
+        
+        returns = torch.tensor(list(discounted_returns), dtype=torch.float32, device=self.device)
+        
+ 
+        if len(returns) > 1:
+            returns = (returns - returns.mean()) / (returns.std() + 1e-9)
+        else:
+            # Handling th edge case of 1-step episode:
+            returns = torch.tensor([0.0], dtype=torch.float32, device=self.device) 
+            
+        # Calculating the policy loss:
+        for log_prob, R in zip(self.saved_log_probs, returns):
+            policy_loss.append(-log_prob * R) # collecting policy loss for each action taken
+            
+        # Data for Logging:
+        # Stacking all log_probs and probs tensors
+        log_probs_tensor = torch.stack(self.saved_log_probs)
+        action_probs_tensor = torch.stack(self.episode_action_probs)
+        
+        mean_log_prob = log_probs_tensor.mean().item()
+        avg_episode_probs = action_probs_tensor.mean(dim=0).squeeze().detach() # Avg across episode
+            
+        #  optimization step:
+        self.optimizer.zero_grad()
+        loss = torch.cat(policy_loss).sum() 
+        loss.backward() 
+        self.optimizer.step()
+        
+        # Clearing the episode's data
+        self.rewards = []
+        self.saved_log_probs = [] 
+        self.episode_action_probs = []
+
+        return loss.item(), mean_log_prob, avg_episode_probs # Return logs
+
+
+
+
+# --- Driver Code ---
+if __name__ == '__main__':
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"\n--- Using device: {device} ---")
+    
+    print("Which environment do you want to run?")
+    print("1: Classic 4-Deck IGT (Recommended)")
+    print("2: Complex 6-Deck IGT (Harder)")
+    print("3: Extreme 8-Deck IGT (Very Hard)")
+    choice = input("Enter 1, 2, or 3: ")
+
+    if choice == '2':
+        from complex_env import IowaEnv as GameEnv
+        env_name = "Complex-6-Deck"
+        temp_env = GameEnv()
+        n_actions = len(temp_env.action_space)
+        del temp_env
+        print(f"\n--- Loading Complex {n_actions}-Deck Environment ---")
+    elif choice == '3':
+        from complex_env import IowaEnv as GameEnv
+        env_name = "Extreme-8-Deck"
+        temp_env = GameEnv()
+        n_actions = len(temp_env.action_space)
+        del temp_env
+        print(f"\n--- Loading Extreme {n_actions}-Deck Environment ---")
+    else:
+        # Default to 4-deck:
+        env_name = ""
+        # try:
+        #     from classic_env import IowaEnv as GameEnv
+        #     n_actions = 4 
+        #     print("\n--- Loading Classic 4-Deck Environment ---")
+        # except ImportError:
+        #     print("Could not find env.py. Defaulting to env_complex.py")
+        #     from complex_env import IowaEnv as GameEnv
+        #     n_actions = len(GameEnv().action_space)
+        #     print(f"\n--- Loading {n_actions}-Deck Environment from env_complex.py ---")
+
+
+    # Hyperparameters
+    n_episodes = 5000
+    learning_rate = 0.005
+    gm = float(input("Enter gamma (0.0 to 1.0) for the agent (e.g., 0.1 for impulsive, 0.9 for far-sighted):\t"))
+    
+    # State is one-hot action + last reward
+    input_dim = n_actions + 1
+    
+    # Initialization
+    env = GameEnv(episode_length=100) # 100 trials per episdoe 
+    
+    limbic_agent = LimbicAgent(
+        input_dim=input_dim, 
+        n_actions=n_actions, 
+        gm=gm, 
+        device=device,
+        learning_rate=learning_rate
+    ).to(device)
+
+
+
+
+    """
+
+        Using Wandb to log training metrics and analyse how the agent is learning over time.
+        
+        """
+
+    
+    wandb.init(
+        project="RL-IWT",
+        config={
+            "learning_rate": learning_rate,
+            "episodes": n_episodes,
+            "gamma": gm,
+            "architecture": "SimpleMLP_32",
+            "environment": env_name,
+            "n_actions": n_actions
+        }
+    )
+    # Watch the model to log gradients
+    wandb.watch(limbic_agent, log="all", log_freq=300) # Log gradients every 300 eps
+    
+    print(f"--- Training Limbic Agent Alone (Gamma: {gm}) ---")
+    episode_rewards = []
+    policy_losses = [] # List to store losses
+    final_deck_pulls = {i: 0 for i in range(n_actions)}
+        # --- GIF logging setup ---
+    gif_root = Path("gif_avg_prob")
+    gif_root.mkdir(parents=True, exist_ok=True)
+
+    deck_names = [chr(65 + j) for j in range(n_actions)]  # A, B, C...
+
+    # Store avg_probs per episode (what you already log to wandb)
+    prob_history = []
+
+    # Frame directories
+    per_deck_frame_dirs = {}
+    for name in deck_names:
+        d = gif_root / f"frames_deck_{name}"
+        d.mkdir(parents=True, exist_ok=True)
+        per_deck_frame_dirs[name] = d
+
+    grid_frames_dir = gif_root / "frames_grid_all_decks"
+    grid_frames_dir.mkdir(parents=True, exist_ok=True)
+
+    # How often to save a frame (keep this >1 to avoid huge disk usage)
+    frame_every = 10        # save frame every 10 episodes
+    gif_fps = 12            # playback speed
+    for i in range(n_episodes):
+        env_state = env.reset()
+        last_action = env_state['last_action']
+        last_reward = 0.0
+        
+        # Run one full episode
+        for t in range(env.episode_length):
+            # Agent chooses an action
+            action = limbic_agent.act(last_action, last_reward, n_actions)
+            # Environment responds
+            next_env_state, reward, done, info = env.step(action)
+            # Store the immediate reward for the agent's update
+            limbic_agent.rewards.append(reward)
+            # Update state variables for the next turn
+            last_action = action
+            last_reward = reward
+        
+        # At the end of the episode, update the agent's policy
+        loss, mean_log_prob, avg_probs = limbic_agent.update(gm) # Capture logs
+        # --- store probability history ---
+        avg_probs_cpu = avg_probs.detach().float().cpu().numpy()
+        prob_history.append(avg_probs_cpu)
+
+        # --- save frames occasionally ---
+        if (i % frame_every) == 0:
+            # Per-deck frames
+            for j, name in enumerate(deck_names):
+                frame_path = per_deck_frame_dirs[name] / f"ep_{i:05d}.png"
+                plot_deck_prob_frame(
+                    prob_history=prob_history,
+                    deck_idx=j,
+                    deck_name=name,
+                    gm=gm,
+                    episode_idx=i,
+                    save_path=str(frame_path)
+                )
+
+            # Optional: one combined grid frame (nice for a single GIF)
+            grid_frame_path = grid_frames_dir / f"ep_{i:05d}.png"
+            plot_all_decks_grid_frame(
+                prob_history=prob_history,
+                deck_names=deck_names,
+                gm=gm,
+                episode_idx=i,
+                save_path=str(grid_frame_path)
+            )
+
+        
+        policy_losses.append(loss) # Store the loss
+        episode_rewards.append(env.cumulative_reward)
+        
+        log_data = {
+            "episode": i,
+            "policy_loss": loss,
+            "cumulative_reward": env.cumulative_reward,
+            "mean_log_prob_episode": mean_log_prob
+        }
+        # Adding average action probabilities to the log
+        prob_log = {f"avg_prob_deck_{chr(65+j)}": p.item() for j, p in enumerate(avg_probs)}
+        log_data.update(prob_log)
+        
+        wandb.log(log_data)
+        
+        
+        # Store deck pulls from the final episodes to see learned policy
+        if i >= n_episodes - 100:
+            for deck, count in env._deck_pull_counts.items():
+                final_deck_pulls[deck] += count
+
+        if (i + 1) % 300 == 0:
+            avg_reward = np.mean(episode_rewards[-100:])
+            print(f"Episode {i+1}/{n_episodes}, Average Reward (last 100): {avg_reward:.2f}")
+            # Log the 100-episode average reward
+            wandb.log({"average_reward_100_ep": avg_reward, "episode": i})
+            
+    total_average_reward = np.mean(episode_rewards)
+    print(f"\nOverall Average Reward after {n_episodes} episodes: {total_average_reward:.2f} for gamma = {gm}")
+    
+    print("\n--- Average Deck Pulls (Last 100 Episodes) ---")
+    for deck, count in final_deck_pulls.items():
+        print(f"Deck {chr(65 + deck)}: {count / 100.0:.2f} pulls/episode")
+
+    print("\n--- Training Complete ---")
+    if gm < 0.5:
+        print("With a low gamma, the agent likely preferred high-reward decks")
+        print("even if they led to long-term losses.")
+    else:
+        print("With a high gamma, the agent should have learned to prefer the stable,")
+        print("long-term positive decks.")
+
+    save_dir = "models"
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f"limbic_agent_gamma_{gm}_env_{choice}.pth")
+    torch.save(limbic_agent.state_dict(), save_path)
+    print(f"Model saved to {save_path}")
+
+
+    print("\nGenerating training plots...")
+
+    def moving_average(data, window_size):
+        """Computes the moving average of a list."""
+        return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
+
+    # Calculate moving average for rewards
+    window_size = 50
+    # for Handling cases where n_episodes < window_size
+    if n_episodes > window_size:
+        avg_rewards = moving_average(episode_rewards, window_size)
+    else:
+        avg_rewards = episode_rewards # Not enough data to smooth
+        window_size = 1
+
+
+    # Create the plots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
+    
+    # Plot 1: Smoothed Cumulative Reward
+    if n_episodes > window_size:
+        ax1.plot(range(window_size - 1, n_episodes), avg_rewards)
+    else:
+        ax1.plot(avg_rewards)
+    ax1.set_title(f"Smoothed Cumulative Reward (Window={window_size}) - Gamma={gm}")
+    ax1.set_ylabel("Average Reward")
+    ax1.grid(True)
+
+    # Plot 2: Raw Policy Loss
+    ax2.plot(policy_losses)
+    ax2.set_title("Raw Policy Loss per Episode (Normalized)")
+    ax2.set_xlabel("Episode")
+    ax2.set_ylabel("Loss Value")
+    ax2.grid(True)
+    
+    plt.tight_layout()
+    plot_filename = f"training_plots_gamma_{gm}.png"
+    plt.savefig(plot_filename)
+    print(f"Saved training plots to {plot_filename}")
+
+
+    print("\nBuilding GIFs from saved frames...")
+
+    # One GIF per deck
+    for name in deck_names:
+        frame_dir = per_deck_frame_dirs[name]
+        frame_paths = sorted(frame_dir.glob("ep_*.png"))
+        out_gif = gif_root / f"avg_prob_deck_{name}_gamma_{gm}.gif"
+        make_gif_from_frames([str(p) for p in frame_paths], str(out_gif), fps=gif_fps)
+        print(f"Saved: {out_gif}")
+
+    # One combined grid GIF (optional)
+    grid_frame_paths = sorted(grid_frames_dir.glob("ep_*.png"))
+    out_grid_gif = gif_root / f"avg_prob_ALL_DECKS_gamma_{gm}.gif"
+    make_gif_from_frames([str(p) for p in grid_frame_paths], str(out_grid_gif), fps=gif_fps)
+    print(f"Saved: {out_grid_gif}")
+
+    wandb.finish() 
+

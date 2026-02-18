@@ -1,0 +1,35 @@
+--- Training Limbic Agent Alone (Gamma: 0.3) ---
+Episode 300/1000, Average Reward (last 100): 2250.15
+Episode 600/1000, Average Reward (last 100): 2104.15
+Episode 900/1000, Average Reward (last 100): 2180.80
+
+Overall Average Reward after 1000 episodes: 1938.07 for gamma = 0.3
+
+--- Average Deck Pulls (Last 100 Episodes) ---
+Deck A: 0.03 pulls/episode
+Deck B: 5.80 pulls/episode
+Deck C: 9.31 pulls/episode
+Deck D: 80.40 pulls/episode
+Deck E: 0.05 pulls/episode
+Deck F: 4.14 pulls/episode
+Deck G: 0.23 pulls/episode
+Deck H: 0.04 pulls/episode
+
+--- Training Complete ---
+With a low gamma, the agent likely preferred high-reward decks
+even if they led to long-term losses.
+Model saved to models\limbic_agent_gamma_0.3_env_3.pth
+
+Generating training plots...
+Saved training plots to training_plots_gamma_0.3.png
+
+Building GIFs from saved frames...
+Saved: gif_avg_prob\avg_prob_deck_A_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_B_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_C_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_D_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_E_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_F_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_G_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_deck_H_gamma_0.3.gif
+Saved: gif_avg_prob\avg_prob_ALL_DECKS_gamma_0.3.gif
