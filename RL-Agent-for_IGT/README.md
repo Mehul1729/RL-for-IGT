@@ -19,7 +19,7 @@
 ---
 
 ### Agent chooses deck "D" out of all other decks to be the best
-![Agent Deck Choice](https://github.com/Mehul1729/RL-for-IGT/blob/652184f6630834cd4ed7f28eaabe4e92d008857a/RL-Agent-for_IGT/Plots/avg_prob_ALL_DECKS_gamma_0.3.gif)
+![Agent Deck Choice](https://github.com/Mehul1729/RL-for-IGT/blob/9065826c8e378553856b2918e8ab5b9e2ef755d6/RL-Agent-for_IGT/Plots/avg_prob_ALL_DECKS_gamma_0.3.gif)
 ---
 
 
