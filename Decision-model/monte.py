@@ -17,21 +17,23 @@ class LimbicFit:
         self.q_table = np.zeros(n_actions) # stateless q table to mimic the impulsivity of limbic system (only cares about immediate rewards)
         self.sensitivity = 0.5
 
+# PVL theory based loss aversion in the limbic system:
     def pvl(self, reward):
         if reward >= 0:
             return reward ** self.sensitivity # gains are processed with diminishing sensitivity (concave)
         else:
             return -self.loss_aversion * (abs(reward) ** self.sensitivity) # losses are processed with loss aversion and diminishing sensitivity (convex and steeper)
 
+
     def update(self, action, reward):
         # Decay
-        self.q_table *= self.decay
+        self.q_table *= self.decay # to simulate the action-memory decay 
         
         # Update
         utility = self.pvl(reward)
         current_val = self.q_table[action]
-        pe = utility - current_val
-        self.q_table[action] += self.alpha * pe
+        pe = utility - current_val 
+        self.q_table[action] += self.alpha * pe # updating the q values
         return abs(pe)
 
 class PFCFit:
@@ -42,8 +44,9 @@ class PFCFit:
         self.q_table = {} 
 
     def get_state_index(self, deck_counts):
-        return tuple(deck_counts // 5)
+        return tuple(deck_counts // 5) # we bucket the counts into 5s to reduce state space (0-4, 5-9, etc.)
 
+    # usual state-action q-value stable updation:
     def get_q(self, state):
         q = np.zeros(self.n_actions)
         for a in range(self.n_actions):
@@ -59,24 +62,27 @@ class PFCFit:
             val = self.q_table.get((next_state, a), 0.0)
             if val > next_max: next_max = val
             
-        target = reward + self.gamma * next_max
+        target = reward + self.gamma * next_max # q*
         pe = target - old_val
         self.q_table[(state, action)] = old_val + self.lr * pe
         return abs(pe) 
 
-# --- 2. LIKELIHOOD FUNCTION ---
+
+
+# -------------Fitting the data to the dual system model----------------:
 
 def calculate_nll(params, choices, rewards, n_actions=4):
     """
     Returns Negative Log Likelihood. Lower is better.
     """
-    # Unpack
-    alpha, decay, lam, t_pfc, t_limbic, arb_lr = params
+    # Unpacking the params:
+    alpha, decay, lam, t_pfc, t_limbic, arb_lr = params # lr for limbic system, decay rate of memory (somatic marker), loss aversion (PVL), temperature for pfc, temperature for limbic, learning rate for arbitration
     
-    # Init Agents
+    # Initialsing Agents
     limbic = LimbicFit(n_actions, alpha, decay, lam)
-    pfc = PFCFit(n_actions) 
+    pfc = PFCFit(n_actions)
     
+    # we take the default reliabilities of the pfc and limbic q values as equal:
     rel_pfc = 0.5
     rel_limbic = 0.5
     deck_counts = np.zeros(n_actions, dtype=int)
@@ -142,7 +148,7 @@ def calculate_nll(params, choices, rewards, n_actions=4):
         
     return total_nll
 
-# --- 3. MONTE CARLO OPTIMIZER ---
+# --- Monte Carlo Optimizer---
 
 def monte_carlo_search(choices, rewards, n_iters=100):
     """
