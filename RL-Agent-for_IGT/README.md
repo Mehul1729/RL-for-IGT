@@ -19,8 +19,7 @@
 ---
 
 ### Agent chooses deck "D" out of all other decks to be the best
-![Agent Deck Choice]([https://github.com/Mehul1729/RL-for-IWT/blob/807550f9f0f42e057a4edea20a388bb8de1b379c/Policy_Learning/Plots/policy%20learning%20decks%20.png](https://github.com/Mehul1729/RL-for-IGT/blob/652184f6630834cd4ed7f28eaabe4e92d008857a/RL-Agent-for_IGT/Plots/avg_prob_ALL_DECKS_gamma_0.3.gif))
-
+![Agent Deck Choice](https://github.com/Mehul1729/RL-for-IGT/blob/652184f6630834cd4ed7f28eaabe4e92d008857a/RL-Agent-for_IGT/Plots/avg_prob_ALL_DECKS_gamma_0.3.gif)
 ---
 
 
