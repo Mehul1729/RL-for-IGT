@@ -73,7 +73,9 @@ class PFCFit:
 
 def calculate_nll(params, choices, rewards, n_actions=4):
     """
-    Returns Negative Log Likelihood. Lower is better.
+    For each trial, it computes the model's probability of the action the human took,
+    adds -log(prob) to a running total, 
+    then updates the model's internal states exactly like learning would happen in that trial.
     """
     # Unpacking the params:
     alpha, decay, lam, t_pfc, t_limbic, arb_lr = params # lr for limbic system, decay rate of memory (somatic marker), loss aversion (PVL), temperature for pfc, temperature for limbic, learning rate for arbitration
@@ -97,7 +99,7 @@ def calculate_nll(params, choices, rewards, n_actions=4):
         q_pfc = pfc.get_q(state_pfc)
         q_limbic = limbic.q_table
         
-        # 2. Softmax (Manual stable implementation)
+        # 2. Softmax: converting the q valuues to probabilities for action selection:
         # PFC
         pfc_logits = q_pfc / t_pfc
         pfc_logits -= np.max(pfc_logits) # shift for stability
@@ -112,11 +114,11 @@ def calculate_nll(params, choices, rewards, n_actions=4):
         
         # Router
         rel_scores = np.array([rel_pfc, rel_limbic])
-        w_logits = rel_scores * 5.0
+        w_logits = rel_scores * 5.0 # to make it sensitive to minor differences in reliabilities
         w_logits -= np.max(w_logits)
         weights = np.exp(w_logits)
         weights /= np.sum(weights)
-        beta_pfc = weights[0]
+        beta_pfc = weights[0] # represents the coeff of pfc dominance
         
         # Mixture
         final_probs = (beta_pfc * p_pfc) + ((1 - beta_pfc) * p_limbic)
@@ -124,7 +126,7 @@ def calculate_nll(params, choices, rewards, n_actions=4):
         # 3. Score
         prob_chosen = final_probs[action]
         if prob_chosen < 1e-9: prob_chosen = 1e-9
-        total_nll -= np.log(prob_chosen)
+        total_nll -= np.log(prob_chosen) # accumulating the  log likelihood 
         
         # 4. Learning
         next_counts = deck_counts.copy()
@@ -157,8 +159,8 @@ def monte_carlo_search(choices, rewards, n_iters=100):
     """
     best_nll = float('inf')
     best_params = None
-    
-    # Generate random parameters (Vectorized)
+
+    # Generate random parameters (Vectorized) for each iteration:
     # alpha, decay, lambda, t_pfc, t_limbic, arb_lr
     alphas = np.random.uniform(0.01, 1.0, n_iters)
     decays = np.random.uniform(0.01, 1.0, n_iters)
@@ -166,7 +168,8 @@ def monte_carlo_search(choices, rewards, n_iters=100):
     t_pfcs = np.random.uniform(1.0, 20.0, n_iters)
     t_limbics = np.random.uniform(0.1, 10.0, n_iters)
     arb_lrs = np.random.uniform(0.01, 0.5, n_iters)
-    
+
+
     for i in range(n_iters):
         params = [alphas[i], decays[i], lambdas[i], t_pfcs[i], t_limbics[i], arb_lrs[i]]
         
