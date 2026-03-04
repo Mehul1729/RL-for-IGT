@@ -46,7 +46,7 @@ class PFCFit:
         self.q_table = {} 
 
     def get_state_index(self, deck_counts):
-        return tuple(deck_counts // 5) # we bucket the counts into 5s to reduce state space (0-4, 5-9, etc.)
+        return tuple(deck_counts // 5) # we bucket the counts into 5s to reduce state space and will pass on as state for the Q learner 
 
     # usual state-action q-value stable updation:
     def get_q(self, state):
