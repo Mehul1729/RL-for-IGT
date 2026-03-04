@@ -9,7 +9,23 @@ Human behavioral data is fit by minimizing the **negative log-likelihood of obse
 
 ---
 
-# 1. Limbic System (PVL Model)
+# Results:
+
+### Loss Aversion
+
+![Loss Aversion](https://github.com/Mehul1729/RL-for-IGT/blob/41b1ed5c9c95108b9ee6ce1d7b68edb92b4c6525/Decision-model/Plots/loss%20aversion.jpg)
+
+### Memory Decay (Somatic Marker)
+
+![Memory Decay](https://github.com/Mehul1729/RL-for-IGT/blob/41b1ed5c9c95108b9ee6ce1d7b68edb92b4c6525/Decision-model/Plots/memory%20decay.jpg)
+
+### Beta_PFC (Weightage of PFC system in decision making)
+
+![Beta_PFC](https://github.com/Mehul1729/RL-for-IGT/blob/569847de4a98ae29a81f719f56d7be47406c481f/Decision-model/Plots/PFC_control_level.png)
+
+# Methodology:
+
+## 1. Limbic System (PVL Model)
 
 The limbic system converts reward outcomes into subjective utility using the Prospect Valence Learning function.
 
@@ -56,7 +72,7 @@ where
 
 ---
 
-# 2. Prefrontal Cortex (PFC) — Q-Learning
+## 2. Prefrontal Cortex (PFC) — Q-Learning
 
 The PFC represents a stateful reinforcement learning system.
 
@@ -97,7 +113,7 @@ Parameters:
 
 ---
 
-# 3. Action Selection (Softmax Policy)
+## 3. Action Selection (Softmax Policy)
 
 Each system produces a softmax policy.
 
@@ -114,7 +130,7 @@ where
 
 ---
 
-# 4. PFC–Limbic Arbitration
+## 4. PFC–Limbic Arbitration
 
 Action probabilities are modeled as a mixture of the two systems.
 
@@ -133,7 +149,7 @@ Interpretation:
 
 ---
 
-# 5. Negative Log-Likelihood (Model Fitting)
+## 5. Negative Log-Likelihood (Model Fitting)
 
 Given observed human actions $a_t$, the likelihood is
 
@@ -150,7 +166,7 @@ $$
 
 ---
 
-# 6. Parameter Estimation
+## 6. Parameter Estimation
 
 The following parameters are fitted per subject:
 
@@ -188,13 +204,6 @@ This framework allows interpretation of cognitive control in decision-making:
 This project demonstrates how reinforcement learning can be extended beyond games and robotics to model complex human behavior.
 
 ---
-
-## Technical Approach
-
-- Custom RL environment replicating the deceptive reward structure of the IGT  
-- Dual-system architecture inspired by neuroscience  
-- Likelihood-based fitting to real sequential behavioral data  
-- Monte Carlo parameter search for latent cognitive variables  
 
 ---
 
