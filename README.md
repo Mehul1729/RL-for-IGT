@@ -38,6 +38,10 @@ Estimated parameters across subject groups (Control vs Substance Use).
 
 ![Memory Decay](https://github.com/Mehul1729/RL-for-IGT/blob/41b1ed5c9c95108b9ee6ce1d7b68edb92b4c6525/Decision-model/Plots/memory%20decay.jpg)
 
+### Beta_PFC (Weightage of PFC system in decision making)
+
+![Beta_PFC](https://github.com/Mehul1729/RL-for-IGT/blob/569847de4a98ae29a81f719f56d7be47406c481f/Decision-model/Plots/PFC_control_level.png)
+
 ---
 
 ## 📂 Project Structure
