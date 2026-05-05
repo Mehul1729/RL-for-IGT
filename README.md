@@ -1,14 +1,26 @@
-# PFC–Limbic Dual-System RL for Human Decision Modeling (IGT)
+### 🧠 The Computational Pipeline
 
-This repository explores how reinforcement learning can be extended from solving artificial tasks to modeling real human decision-making under risk and uncertainty using the Iowa Gambling Task (IGT).
+```mermaid
+graph TD
+    A[Clinical IGT Data<br>Choices & Rewards] --> M
 
-It combines:
+    subgraph Dual-System Cognitive Engine
+        P[Prefrontal Cortex<br>Goal-Directed / Q-Learning] -->|State-Action Values| M{Arbitration Router}
+        L[Limbic System<br>Impulsive / Prospect Theory] -->|Immediate Utility| M
+    end
 
-- A policy-gradient RL agent that learns the task  
-- A neuroscience-inspired dual-system decision model  
-- Likelihood-based fitting to real behavioral datasets  
+    M -->|Mixture Coefficient β| E(Inverse Estimation)
+    E -->|Monte Carlo Sweep| B[Extracted Biomarkers]
 
----
+    B --> B1(β: PFC Dominance)
+    B --> B2(λ: Loss Aversion)
+    B --> B3(α: Memory Decay)
+    
+    style P fill:#e1f5fe,stroke:#311b92,color:#000000,stroke-width:2px
+    style L fill:#fce4ec,stroke:#4a148c,color:#000000,stroke-width:2px
+    style M fill:#fff3e0,stroke:#e65100,color:#000000,stroke-width:2px
+    style B fill:#e8f5e9,stroke:#1b5e20,color:#000000,stroke-width:2px
+```
 
 ## 🧠 Dual-System Arbitration Model
 
