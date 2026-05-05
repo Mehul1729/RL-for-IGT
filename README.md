@@ -1,4 +1,4 @@
-### 🧠 The Computational Pipeline
+###  The Computational Pipeline
 
 ```mermaid
 graph TD
