@@ -9,16 +9,18 @@ graph TD
         L[Limbic System<br>Impulsive / Prospect Theory] -->|Immediate Utility| M
     end
 
-    M -->|Mixture Coefficient β| E(Inverse Estimation)
-    E -->|Monte Carlo Sweep| B[Extracted Biomarkers]
+    M -->|Action Probabilities| E(Hierarchical Bayesian Analysis<br>NUTS Sampler via JAX/NumPyro)
+    E -->|Posterior Distributions| B[Extracted Biomarkers]
 
     B --> B1(β: PFC Dominance)
     B --> B2(λ: Loss Aversion)
-    B --> B3(α: Memory Decay)
+    B --> B3(α_L: Limbic Learning Rate)
+    B --> B4(d: Memory Decay)
     
     style P fill:#e1f5fe,stroke:#311b92,color:#000000,stroke-width:2px
     style L fill:#fce4ec,stroke:#4a148c,color:#000000,stroke-width:2px
     style M fill:#fff3e0,stroke:#e65100,color:#000000,stroke-width:2px
+    style E fill:#f3e5f5,stroke:#4a148c,color:#000000,stroke-width:2px
     style B fill:#e8f5e9,stroke:#1b5e20,color:#000000,stroke-width:2px
 ```
 
