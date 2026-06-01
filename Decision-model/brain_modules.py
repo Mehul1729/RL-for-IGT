@@ -58,11 +58,11 @@ class PFCFit:
     def update(self, state, action, reward, next_state):
         old_val = self.q_table.get((state, action), 0.0)
         
-        # Manual max for speed
         next_max = 0.0
         for a in range(self.n_actions):
             val = self.q_table.get((next_state, a), 0.0)
-            if val > next_max: next_max = val
+            if val > next_max:
+                next_max = val
             
         target = reward + self.gamma * next_max # q*
         pe = target - old_val
