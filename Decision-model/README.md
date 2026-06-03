@@ -43,3 +43,6 @@ graph TD
 
 ---
 
+## Dataset Source
+
+The raw IGT clinical data is publicly accessible via Figshare at: http://figshare.com/articles/IGT_raw_data_Ahn_et_al_2014_Frontiers_in_Psychology/1101324
